@@ -4,9 +4,11 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from scipy import ndimage
 
-from constants.constants import percentiles, quantiles, gaussian_width
+from constants.processed_table_column_names import median_ages, min_ages, max_ages, get_brain_region_average_cn, \
+    get_brain_region_percentile_cn, get_brain_region_smoothed_percentile_cn
+from constants.sliding_window_constants import percentiles, quantiles, gaussian_width
 from constants.table_columns import latest_age_cn
-from utils import generate_list_of_rounded_items, get_percentile_field
+from utils import generate_list_of_rounded_items
 
 
 def perform_gaussian_smoothing(raw_data: list, gaussian_width=20):
@@ -31,16 +33,16 @@ def perform_sliding_window_analysis(df: pd.DataFrame, brain_region: enum):
     number_of_participants_in_bins = generate_list_of_rounded_items(number_of_rows, percentage_of_parts_in_bin)
 
     sliding_window_params = {
-        'median_ages': [],
-        'min_ages': [],
-        'max_ages': [],
+        median_ages: [],
+        min_ages: [],
+        max_ages: [],
     }
 
     for hemisphere in brain_region.get_names():
-        sliding_window_params[f'{hemisphere}_average'] = []
+        sliding_window_params[get_brain_region_average_cn(hemisphere)] = []
 
         for percentile in percentiles:
-            sliding_window_params[get_percentile_field(percentile, hemisphere)] = []
+            sliding_window_params[get_brain_region_percentile_cn(percentile, hemisphere)] = []
 
     i = 0
     j = 0
@@ -48,33 +50,34 @@ def perform_sliding_window_analysis(df: pd.DataFrame, brain_region: enum):
     while i < number_of_rows - number_of_participants_in_bins[-1]:
         bin = df[i:i+number_of_participants_in_bins[j]]
 
-        sliding_window_params['median_ages'].append(bin[latest_age_cn].median())
-        sliding_window_params['min_ages'].append(bin[latest_age_cn].min())
-        sliding_window_params['max_ages'].append(bin[latest_age_cn].max())
+        sliding_window_params[median_ages].append(bin[latest_age_cn].median())
+        sliding_window_params[min_ages].append(bin[latest_age_cn].min())
+        sliding_window_params[max_ages].append(bin[latest_age_cn].max())
 
         for hemisphere in brain_region:
             hemisphere_name = hemisphere.get_name()
             column_name = hemisphere.get_column_name()
             quantiles_for_brain_region = bin[column_name].quantile(quantiles)
 
-            sliding_window_params[f'{hemisphere_name}_average'].append(df[column_name].mean())
+            sliding_window_params[get_brain_region_average_cn(hemisphere)].append(df[column_name].mean())
 
             for n in range(len(percentiles)):
                 quantile = quantiles[n]
                 percentile = percentiles[n]
 
-                quantile_column_name = get_percentile_field(percentile, hemisphere_name)
+                quantile_column_name = get_brain_region_percentile_cn(percentile, hemisphere_name)
                 sliding_window_params[quantile_column_name].append(quantiles_for_brain_region[quantile])
 
         i += step
         j += 1
         step = shifts[j]
 
-    for hemisphere in brain_region.get_names():
+    for hemisphere_name in brain_region.get_names():
         for percentile in percentiles:
-            quantile_column_name = get_percentile_field(percentile, hemisphere)
+            quantile_column_name = get_brain_region_percentile_cn(percentile, hemisphere_name)
+            smoothed_quantile_column_name = get_brain_region_smoothed_percentile_cn(percentile, hemisphere_name)
             raw_data = sliding_window_params[quantile_column_name]
-            sliding_window_params[f'{quantile_column_name}_smoothed'] = perform_gaussian_smoothing(raw_data, gaussian_width)
+            sliding_window_params[smoothed_quantile_column_name] = perform_gaussian_smoothing(raw_data, gaussian_width)
 
     return pd.DataFrame.from_dict(sliding_window_params)
 

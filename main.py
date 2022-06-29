@@ -26,11 +26,11 @@ brain_region = HippocampusVolume
 for sex in Sex:
     sex_df = female_df if sex == Sex.FEMALE else male_df
     sex.set_dataframe(sex_df)
-    # for volume in HippocampusVolume:
-        # column_name = volume.get_column_name()
-        # corrected_volume = correct_brain_region_volume_for_icv_and_scan_date(sex_df, volume, sex, plot=False)
-        # sex_df.drop(columns=[column_name])
-        # sex_df[column_name] = corrected_volume
+    for volume in HippocampusVolume:
+        column_name = volume.get_column_name()
+        corrected_volume = correct_brain_region_volume_for_icv_and_scan_date(sex_df, volume, sex, plot=False)
+        sex_df.drop(columns=[column_name])
+        sex_df[column_name] = corrected_volume
 
 
         # Plot amygdala volume vs age

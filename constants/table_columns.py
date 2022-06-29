@@ -11,6 +11,9 @@ standard_brain_icv = 1.847712
 
 # old_age_cn = 'X21003.2.0'
 latest_age_cn = 'AGE_Latest'
+min_age = 44
+max_age = 82
+
 sex_cn = 'X31.0.0'
 
 ethnicity_cn = 'X21000.0.0'

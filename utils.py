@@ -61,8 +61,3 @@ def get_percentile_string(percentile: float):
     return str(percentile).replace('.', '_')
 
 
-def get_percentile_field(percentile: float, brain_region: enum):
-    quantile_str = get_percentile_string(percentile)
-    column_name = f'{brain_region}_{quantile_str}'
-
-    return column_name
