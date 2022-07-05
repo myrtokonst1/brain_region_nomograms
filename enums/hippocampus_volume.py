@@ -1,6 +1,7 @@
 from enum import Enum
 
-from constants.table_columns import l_hippo_vol_cn, r_hippo_vol_cn
+from constants.nomogram_constants import hippocampal_volume_y_lim
+from constants.ukb_table_column_names import l_hippo_vol_cn, r_hippo_vol_cn
 
 
 class HippocampusVolume(Enum):
@@ -18,6 +19,10 @@ class HippocampusVolume(Enum):
 
     def get_name(self):
         return self.name.lower()+'_hippocampus_volume'
+
+    @classmethod
+    def get_y_lims_nomogram(cls):
+        return hippocampal_volume_y_lim
 
     @classmethod
     def get_names(cls):

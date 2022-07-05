@@ -3,7 +3,7 @@ import enum
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from constants.table_columns import cranial_vol_cn, latest_age_cn
+from constants.ukb_table_column_names import cranial_vol_cn, latest_age_cn
 
 
 def convert_dataset_to_pd(path):

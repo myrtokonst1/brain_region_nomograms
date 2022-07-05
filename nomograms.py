@@ -1,20 +1,72 @@
 import matplotlib.pyplot as plt
 
+from constants.processed_table_column_names import median_ages, \
+    get_brain_region_smoothed_percentile_cn
 from constants.sliding_window_constants import percentiles
-from utils import get_percentile_field
+from constants.preprocessing_constants import min_age, max_age
 
 
-def plot_nomogram(bins, brain_region, sex, x_label='median_ages', x_lim=[45, 82], y_lim=[3000, 5100]):
+def plot_nomogram(bins, brain_region, sex, x=median_ages, x_lim=None, y_lim=None, save=bool):
+    median_age_column = bins[x]
+    x_label = ' '.join(x.split('_')).capitalize()
+
+    if not x_lim:
+        x_lim = [min_age, max_age]
+
     for brain_region_hemisphere in brain_region:
-        median_age = bins[x_label]
         for percentile in percentiles:
-            percentile_column_name = get_percentile_field(percentile, brain_region_hemisphere.get_name())
-            plt.plot(median_age, bins[f'{percentile_column_name}_smoothed'], label=f'{percentile} Percentile')
+            percentile_column_name = get_brain_region_smoothed_percentile_cn(percentile, brain_region_hemisphere.get_name())
+            plt.plot(median_age_column, bins[percentile_column_name], label=f'{percentile} Percentile', color='r')
 
-        plt.title(f'{str(brain_region_hemisphere)} vs Median Age for {str(sex)} participants')
-        plt.xlabel('Median Ages')
+        plt.title(f'{str(brain_region_hemisphere)} vs {x_label} for {str(sex)} participants')
+        plt.xlabel(x_label)
         plt.ylabel(str(brain_region_hemisphere))
         plt.xlim(x_lim)
-        plt.ylim(y_lim)
-        plt.legend()
+
+        if y_lim:
+            plt.ylim(y_lim)
+
+        if save:
+            plt.savefig(f'saved_nomograms/{brain_region_hemisphere.get_name()}_nomogram_{sex.get_name()}.png', dpi=600)
+
         plt.show()
+
+
+def overlay_nomograms(bins_1, brain_region_hemisphere_1, sex_1, bins_2, brain_region_hemisphere_2, sex_2, x=median_ages, x_lim=None, y_lim=None, save=True):
+    median_age_column = bins_1[x]
+    x_label = ' '.join(x.split('_')).capitalize()
+
+    if not x_lim:
+        x_lim = [min_age, max_age]
+
+    for percentile in percentiles:
+        percentile_column_name_1 = get_brain_region_smoothed_percentile_cn(percentile, brain_region_hemisphere_1.get_name())
+        percentile_column_name_2 = get_brain_region_smoothed_percentile_cn(percentile, brain_region_hemisphere_2.get_name())
+        handle_1, = plt.plot(median_age_column, bins_1[percentile_column_name_1], label=f'{brain_region_hemisphere_1} for {sex_1}', color="#CC6677")
+        handle_2, = plt.plot(median_age_column, bins_2[percentile_column_name_2], label=f'{brain_region_hemisphere_2} for {sex_2}', color="#888888")
+
+    nomogram_description = ''
+    if brain_region_hemisphere_1 == brain_region_hemisphere_2:
+        nomogram_description+= f'{str(brain_region_hemisphere_1)} '
+    else:
+        nomogram_description+= f'{str(brain_region_hemisphere_1)} and {str(brain_region_hemisphere_2)} '
+
+    if sex_1 == sex_2:
+        nomogram_description+= f'for {sex_1} participants'
+    else:
+        nomogram_description+= f'for {sex_1} and {sex_2} participants'
+
+    plt.title(f'Overlay of nomograms of {nomogram_description}')
+    plt.xlabel(x_label)
+    # plt.ylabel()
+    plt.xlim(x_lim)
+    if y_lim:
+        plt.ylim(y_lim)
+    plt.legend(handles=[handle_1, handle_2])
+    fig = plt.gcf()
+    fig.set_size_inches((8.5, 11), forward=False)
+    if save:
+        fig.savefig(f'saved_nomograms/{"_".join(nomogram_description.split(" "))}_nomogram_overlays.png', dpi=600)
+
+    plt.show()
+

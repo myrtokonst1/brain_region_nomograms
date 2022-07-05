@@ -7,7 +7,7 @@ from scipy import ndimage
 from constants.processed_table_column_names import median_ages, min_ages, max_ages, get_brain_region_average_cn, \
     get_brain_region_percentile_cn, get_brain_region_smoothed_percentile_cn
 from constants.sliding_window_constants import percentiles, quantiles, gaussian_width
-from constants.table_columns import latest_age_cn
+from constants.ukb_table_column_names import latest_age_cn
 from utils import generate_list_of_rounded_items
 
 
@@ -59,7 +59,7 @@ def perform_sliding_window_analysis(df: pd.DataFrame, brain_region: enum):
             column_name = hemisphere.get_column_name()
             quantiles_for_brain_region = bin[column_name].quantile(quantiles)
 
-            sliding_window_params[get_brain_region_average_cn(hemisphere)].append(df[column_name].mean())
+            sliding_window_params[get_brain_region_average_cn(hemisphere_name)].append(df[column_name].mean())
 
             for n in range(len(percentiles)):
                 quantile = quantiles[n]
@@ -79,5 +79,7 @@ def perform_sliding_window_analysis(df: pd.DataFrame, brain_region: enum):
             raw_data = sliding_window_params[quantile_column_name]
             sliding_window_params[smoothed_quantile_column_name] = perform_gaussian_smoothing(raw_data, gaussian_width)
 
-    return pd.DataFrame.from_dict(sliding_window_params)
+    bins = pd.DataFrame.from_dict(sliding_window_params)
+    bins = bins.iloc[9:-11] # this is to remove the annoying interpolation done by the gaussian filtering (55-72 ages)
 
+    return bins
