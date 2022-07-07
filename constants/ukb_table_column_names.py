@@ -1,3 +1,7 @@
+# Column names as found in the UK BioBank
+
+participant_id = 'eid'
+
 l_hippo_vol_cn = 'X26562.2.0'
 r_hippo_vol_cn = 'X26593.2.0'
 

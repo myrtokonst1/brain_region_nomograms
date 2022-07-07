@@ -1,4 +1,5 @@
 import enum
+import string
 
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -59,5 +60,9 @@ def generate_list_of_rounded_items(divident, divisor):
 
 def get_percentile_string(percentile: float):
     return str(percentile).replace('.', '_')
+
+
+def get_underscored_string(phrase: string):
+    return '_'.join(phrase.split(' '))
 
 

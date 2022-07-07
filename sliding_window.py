@@ -1,12 +1,13 @@
 import enum
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from scipy import ndimage
 
 from constants.processed_table_column_names import median_ages, min_ages, max_ages, get_brain_region_average_cn, \
     get_brain_region_percentile_cn, get_brain_region_smoothed_percentile_cn
-from constants.sliding_window_constants import percentiles, quantiles, gaussian_width
+from constants.nomogram_constants import percentiles, quantiles, gaussian_width
 from constants.ukb_table_column_names import latest_age_cn
 from utils import generate_list_of_rounded_items
 
@@ -22,15 +23,15 @@ def perform_sliding_window_analysis(df: pd.DataFrame, brain_region: enum):
 
     number_of_rows = df.shape[0]  # number of participants
     number_of_bins = 100  # a total of 100 bins (we don't end up having 100, we have 91)
-    percentage_of_parts_in_bin = 10  # each bin should have 10% of the samples
+    percentage_of_participants_in_bin = 10  # each bin should have 10% of the samples
 
     # for both the shifts and the number of participants in each bin,
     # we divide the total sample by 100 and 10 respectively
     # since this division will not always be exact, we need to take into account the remainders
-    # hence, we create lists in which the inexact division is taken into account
-    # eg. if we had 15 participants and wanted 2 bins, the list for parts in a bin would be [8, 7]
+    # hence, we create lists in which the inexact division is taken into account (instead of rounding)
+    # eg. if we had 15 participants and wanted 2 bins, the list for parts in a bin would be [8, 7] (instead of [8,8])
     shifts = generate_list_of_rounded_items(number_of_rows, number_of_bins)
-    number_of_participants_in_bins = generate_list_of_rounded_items(number_of_rows, percentage_of_parts_in_bin)
+    number_of_participants_in_bins = generate_list_of_rounded_items(number_of_rows, percentage_of_participants_in_bin)
 
     sliding_window_params = {
         median_ages: [],
@@ -80,6 +81,6 @@ def perform_sliding_window_analysis(df: pd.DataFrame, brain_region: enum):
             sliding_window_params[smoothed_quantile_column_name] = perform_gaussian_smoothing(raw_data, gaussian_width)
 
     bins = pd.DataFrame.from_dict(sliding_window_params)
-    bins = bins.iloc[9:-11] # this is to remove the annoying interpolation done by the gaussian filtering (55-72 ages)
+    bins = bins.iloc[9:-11]  # this is to remove the annoying interpolation done by the gaussian filtering (55-72 ages)
 
     return bins

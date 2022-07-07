@@ -6,10 +6,12 @@ from sklearn.linear_model import LinearRegression
 from constants.data_paths import main_ukb_data_path, ukb_brain_data_path, ukb_preprocessed_data_path, \
     ukb_participant_exclusion_data_path
 from constants.preprocessing_constants import white_british_code, min_age, max_age, standard_brain_icv
-from constants.processed_table_column_names import participant_id, scan_timestamp, icv_estimate
+from constants.processed_table_column_names import scan_timestamp, icv_estimate
 from constants.ukb_table_column_names import intercranial_ratio_cn, scan_date_cn, \
     ethnicity_cn, \
-    cranial_vol_cn, l_amygdala_vol_cn, r_amygdala_vol_cn, latest_age_cn, icd_cns, exclusion_columns_to_excluded_values
+    cranial_vol_cn, l_amygdala_vol_cn, r_amygdala_vol_cn, latest_age_cn, icd_cns, exclusion_columns_to_excluded_values, \
+    participant_id
+from enums.brain_regions.brain_region_volume import BrainRegionVolume
 from utils import plot_cranial_volume_pre_post_processing, convert_dataset_to_pd
 
 
@@ -20,8 +22,10 @@ def generate_and_merge_dataframes():
     preprocessed_ukb_df = convert_dataset_to_pd(ukb_preprocessed_data_path)
     participant_exclusion_ukb_df = convert_dataset_to_pd(ukb_participant_exclusion_data_path)
 
-    desired_participant_exclusion_columns = [s for s in participant_exclusion_ukb_df.columns.tolist() if any(xs in s for xs in icd_cns)] + [participant_id]
+    # get columns of participant_exclusion_ukb_df that we want to include in the merged dataframe
+    desired_participant_exclusion_columns = [column_name for column_name in participant_exclusion_ukb_df.columns.tolist() if any(column_subname in column_name for column_subname in icd_cns)] + [participant_id]
 
+    # merge the three datasets
     bb_df = pd.merge(pd.merge(pd.merge(main_ukb_df, brain_ukb_df[[participant_id, l_amygdala_vol_cn, r_amygdala_vol_cn]], on=participant_id, how='outer'),
                      preprocessed_ukb_df[[participant_id, latest_age_cn]], on=participant_id, how='outer'),
                      participant_exclusion_ukb_df[desired_participant_exclusion_columns], on=participant_id, how='outer')
@@ -45,19 +49,21 @@ def clean_df(df):
     df = df[df[ethnicity_cn] == white_british_code]  # only select participants of white british background
     df = df[df[latest_age_cn].between(min_age, max_age)]  # only take participants between the ages of 44-82
 
+    # remove participants that suffer from specific illnesses
     for column_name, column_values_to_exclude in exclusion_columns_to_excluded_values.items():
         df = exclude_values_from_column(df, column_name, column_values_to_exclude)
 
     return df
 
 
-def remove_cranial_volume_outliers(df, plot=False):
+# Use regression to remove participants whose cranial volume is more than n maes away from the median
+def remove_cranial_volume_outliers(df, plot=False, n=5):
     cranial_vol = df[cranial_vol_cn]
     cranial_vol_median = cranial_vol.median()
     participant_count = df.shape[0]
 
     mean_absolute_error = np.sum(abs(cranial_vol - cranial_vol_median)) / participant_count
-    healthy_cranial_vol_df = df[abs(cranial_vol - cranial_vol_median) < 5 * mean_absolute_error]
+    healthy_cranial_vol_df = df[abs(cranial_vol - cranial_vol_median) < n * mean_absolute_error]
 
     if plot:
         plot_cranial_volume_pre_post_processing(df, healthy_cranial_vol_df)
@@ -65,7 +71,8 @@ def remove_cranial_volume_outliers(df, plot=False):
     return healthy_cranial_vol_df
 
 
-def correct_brain_region_volume_for_icv_and_scan_date(df, brain_region_enum, sex, plot=False):
+# Regress out (ie control for) ICV and scan date
+def correct_brain_region_volume_for_icv_and_scan_date(df, brain_region_enum: BrainRegionVolume, sex, plot=False):
     brain_region_column_name = brain_region_enum.get_column_name()
 
     df[scan_timestamp] = pd.to_datetime(df[scan_date_cn]).map(pd.Timestamp.timestamp)
@@ -80,12 +87,12 @@ def correct_brain_region_volume_for_icv_and_scan_date(df, brain_region_enum, sex
     Y_pred = linear_regressor.predict(X)
     residuals = Y - Y_pred
 
-    # the coefficient with index 1 is taken for ICV since it correlates to the second feature in X
-    # equivalently, scan_timestamp is of index 2 since it is the third element in X
+    # the coefficient with index 0 is taken for ICV since it correlates to the first feature in X
+    # equivalently, scan_timestamp is of index 1 since it is the second element in X
     # python is indexed at 0
     ICV_correction = linear_regressor.coef_[0] * X[icv_estimate].mean()
     scan_date_correction = linear_regressor.coef_[1] * X[scan_timestamp].mean()
-    corrected_volume = linear_regressor.intercept_ + residuals + ICV_correction + scan_date_correction #  LHV for controlling ICV + scan date
+    corrected_volume = linear_regressor.intercept_ + residuals + ICV_correction + scan_date_correction #  brain region volume for controlling ICV + scan date
 
     if plot:
         plt.scatter(X[icv_estimate], Y, label=f'Raw {str(brain_region_enum)}')

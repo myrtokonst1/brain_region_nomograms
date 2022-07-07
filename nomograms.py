@@ -2,11 +2,13 @@ import matplotlib.pyplot as plt
 
 from constants.processed_table_column_names import median_ages, \
     get_brain_region_smoothed_percentile_cn
-from constants.sliding_window_constants import percentiles
+from constants.nomogram_constants import percentiles
 from constants.preprocessing_constants import min_age, max_age
+from enums.analysis_type import AnalysisType
+from utils import get_underscored_string
 
 
-def plot_nomogram(bins, brain_region, sex, x=median_ages, x_lim=None, y_lim=None, save=bool):
+def plot_nomogram(bins, brain_region, sex, x=median_ages, x_lim=None, y_lim=None, save=bool, analysis_type=AnalysisType.SWA):
     median_age_column = bins[x]
     x_label = ' '.join(x.split('_')).capitalize()
 
@@ -27,7 +29,7 @@ def plot_nomogram(bins, brain_region, sex, x=median_ages, x_lim=None, y_lim=None
             plt.ylim(y_lim)
 
         if save:
-            plt.savefig(f'saved_nomograms/{brain_region_hemisphere.get_name()}_nomogram_{sex.get_name()}.png', dpi=600)
+            plt.savefig(f'saved_nomograms/{analysis_type.get_underscored_name()}_{brain_region_hemisphere.get_name()}_nomogram_{sex.get_name()}.png', dpi=600)
 
         plt.show()
 
@@ -66,7 +68,7 @@ def overlay_nomograms(bins_1, brain_region_hemisphere_1, sex_1, bins_2, brain_re
     fig = plt.gcf()
     fig.set_size_inches((8.5, 11), forward=False)
     if save:
-        fig.savefig(f'saved_nomograms/{"_".join(nomogram_description.split(" "))}_nomogram_overlays.png', dpi=600)
+        fig.savefig(f'saved_nomograms/{get_underscored_string(nomogram_description)}_nomogram_overlays.png', dpi=600)
 
     plt.show()
 

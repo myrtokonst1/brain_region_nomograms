@@ -2,7 +2,6 @@ import enum
 
 from utils import get_percentile_string
 
-participant_id = 'eid'
 
 scan_timestamp = 'scan_timestamp'
 icv_estimate = 'icv_estimate'
