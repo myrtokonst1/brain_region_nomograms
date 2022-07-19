@@ -12,7 +12,6 @@ class BrainRegionVolume(Enum):
 
     def __init__(self, brain_region):
         self.brain_region = brain_region
-        print(brain_region.capitalize())
 
     def __str__(self):
         return self.name.capitalize() + f' {string.capwords(self.brain_region)}'

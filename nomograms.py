@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 from constants.processed_table_column_names import median_ages, \
-    get_brain_region_smoothed_percentile_cn
+    get_brain_region_smoothed_percentile_cn, get_brain_region_percentile_cn
 from constants.nomogram_constants import percentiles
 from constants.preprocessing_constants import min_age, max_age
 from enums.analysis_type import AnalysisType
@@ -17,7 +17,7 @@ def plot_nomogram(bins, brain_region, sex, x=median_ages, x_lim=None, y_lim=None
 
     for brain_region_hemisphere in brain_region:
         for percentile in percentiles:
-            percentile_column_name = get_brain_region_smoothed_percentile_cn(percentile, brain_region_hemisphere.get_name())
+            percentile_column_name = get_brain_region_smoothed_percentile_cn(percentile, brain_region_hemisphere.get_name()) if analysis_type == AnalysisType.SWA else get_brain_region_percentile_cn(percentile, brain_region_hemisphere.get_name())
             plt.plot(median_age_column, bins[percentile_column_name], label=f'{percentile} Percentile', color='r')
 
         plt.title(f'{str(brain_region_hemisphere)} vs {x_label} for {str(sex)} participants')
@@ -29,7 +29,7 @@ def plot_nomogram(bins, brain_region, sex, x=median_ages, x_lim=None, y_lim=None
             plt.ylim(y_lim)
 
         if save:
-            plt.savefig(f'saved_nomograms/{analysis_type.get_underscored_name()}_{brain_region_hemisphere.get_name()}_nomogram_{sex.get_name()}.png', dpi=600)
+            plt.savefig(f'saved_nomograms/{analysis_type.name}_{brain_region_hemisphere.get_name()}_nomogram_{sex.get_name()}.png', dpi=600)
 
         plt.show()
 
