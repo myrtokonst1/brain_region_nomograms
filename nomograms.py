@@ -4,11 +4,12 @@ from constants.processed_table_column_names import median_ages, \
     get_brain_region_smoothed_percentile_cn, get_brain_region_percentile_cn
 from constants.nomogram_constants import percentiles
 from constants.preprocessing_constants import min_age, max_age
+from constants.ukb_table_column_names import latest_age_cn
 from enums.analysis_type import AnalysisType
 from utils import get_underscored_string
 
 
-def plot_nomogram(bins, brain_region, sex, x=median_ages, x_lim=None, y_lim=None, save=bool, analysis_type=AnalysisType.SWA):
+def plot_nomogram(df, bins, brain_region, sex, x=median_ages, x_lim=None, y_lim=None, save=bool, analysis_type=AnalysisType.SWA):
     median_age_column = bins[x]
     x_label = ' '.join(x.split('_')).capitalize()
 
@@ -16,6 +17,7 @@ def plot_nomogram(bins, brain_region, sex, x=median_ages, x_lim=None, y_lim=None
         x_lim = [min_age, max_age]
 
     for brain_region_hemisphere in brain_region:
+        plt.plot(df[latest_age_cn], df[brain_region_hemisphere.get_column_name()], "kx", mew=2, color='#E1E4EA')
         for percentile in percentiles:
             percentile_column_name = get_brain_region_smoothed_percentile_cn(percentile, brain_region_hemisphere.get_name()) if analysis_type == AnalysisType.SWA else get_brain_region_percentile_cn(percentile, brain_region_hemisphere.get_name())
             plt.plot(median_age_column, bins[percentile_column_name], label=f'{percentile} Percentile', color='r')
@@ -27,6 +29,8 @@ def plot_nomogram(bins, brain_region, sex, x=median_ages, x_lim=None, y_lim=None
 
         if y_lim:
             plt.ylim(y_lim)
+
+        plt.grid(linestyle='--')
 
         if save:
             plt.savefig(f'saved_nomograms/{analysis_type.name}_{brain_region_hemisphere.get_name()}_nomogram_{sex.get_name()}.png', dpi=600)
@@ -59,8 +63,8 @@ def overlay_nomograms(bins_1, brain_region_hemisphere_1, sex_1, bins_2, brain_re
         nomogram_description+= f'for {sex_1} and {sex_2} participants'
 
     plt.title(f'Overlay of nomograms of {nomogram_description}')
-    plt.xlabel(x_label)
-    # plt.ylabel()
+    # plt.xlabel(x_label)
+    plt.ylabel()
     plt.xlim(x_lim)
     if y_lim:
         plt.ylim(y_lim)

@@ -8,5 +8,5 @@ quantiles = [percentile/100 for percentile in percentiles]
 gaussian_width = 20
 
 # Y-axis limits for different brain regions
-hippocampal_volume_y_lim = [2800, 5300]
-amygdala_volume_y_lim = [1000, 2400]
+hippocampal_volume_y_lim = [3000, 5200]
+amygdala_volume_y_lim = [800, 2400]

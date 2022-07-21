@@ -7,31 +7,26 @@ from scipy.stats import norm
 
 import numpy as np
 import pandas as pd
-import scipy
-
-
-# sigma initialised as the average volume of the brain region in question
-# L initialised as average age difference between all samples
 from scipy.spatial.distance import pdist
 
 from constants.nomogram_constants import percentiles, quantiles
-from constants.processed_table_column_names import median_ages, min_ages, max_ages, get_brain_region_average_cn, \
+from constants.processed_table_column_names import median_ages, get_brain_region_average_cn, \
     get_brain_region_percentile_cn, get_brain_region_variance_cn
 from constants.ukb_table_column_names import latest_age_cn
 
-number_of_bins = 500
-min_age = 30
+number_of_datapoints = 1000
+min_age = 0
 max_age = 100
+number_of_bins = (max_age - min_age)*4  # 4 points per year
+median_ages_sequence = np.linspace(min_age, max_age, number_of_bins)[:, np.newaxis]
 
 
-def perform_gaussian_process_regression(df:pd.DataFrame, brain_region: enum, sex: enum, save=False, plot=False):
-    # GPy.plotting.change_plotting_library('plotly')
-
+def initialize_params_dictionary(brain_region):
     gpr_params = {
-        # todo im confused
-        median_ages: np.arange(min_age, max_age, (max_age - min_age)/number_of_bins).tolist(),
+        median_ages: median_ages_sequence.tolist(),
     }
 
+    # initialize average, variance and quantile column names
     for hemisphere in brain_region.get_names():
         gpr_params[get_brain_region_average_cn(hemisphere)] = []
         gpr_params[get_brain_region_variance_cn(hemisphere)] = []
@@ -39,13 +34,34 @@ def perform_gaussian_process_regression(df:pd.DataFrame, brain_region: enum, sex
         for percentile in percentiles:
             gpr_params[get_brain_region_percentile_cn(percentile, hemisphere)] = []
 
+    return gpr_params
+
+
+def plot_gpr_model(model, y_label, title, filename, save=True, plot=True):
+    model.plot()
+    plt.xlabel('Age')
+    plt.ylabel(y_label)
+    plt.title(title)
+
+    if save:
+        plt.savefig(
+            f'saved_nomograms/{filename}.png',
+            dpi=600)
+
+    if plot:
+        plt.show()
+    else:
+        plt.close()
+
+
+def perform_gaussian_process_regression(df: pd.DataFrame, brain_region: enum, sex: enum, save=False, plot=False):
+    gpr_params = initialize_params_dictionary(brain_region)
+
     for brain_region_hemisphere in brain_region:
-        hemisphere_name = brain_region_hemisphere.get_name()
-
-        X = df[latest_age_cn].iloc[:1000]
+        # get X and y
+        X = df[latest_age_cn].iloc[:number_of_datapoints]
         X = X[:, None]
-
-        y = df[brain_region_hemisphere.get_column_name()].iloc[:1000]
+        y = df[brain_region_hemisphere.get_column_name()].iloc[:number_of_datapoints]
         y = y[:, None]
 
         mean_brain_region_volume = X.mean()
@@ -56,41 +72,27 @@ def perform_gaussian_process_regression(df:pd.DataFrame, brain_region: enum, sex
         model = GPy.models.GPRegression(X, y, kernel)
         display(model)
 
-        if plot:
-            model.plot()
-            plt.xlabel('Age')
-            plt.ylabel(f'{brain_region_hemisphere}')
-            plt.title(f'{brain_region_hemisphere} vs Age Pre Gaussian Process Optimization for {sex} Participants')
+        plot_gpr_model(model,y_label=brain_region_hemisphere,
+                       title=f'{brain_region_hemisphere} vs Age Pre Gaussian Process Optimization for {sex} Participants',
+                       filename=f'prepocess_GPR_{brain_region_hemisphere.get_name()}_{sex.get_name()}',
+                       save=save, plot=plot)
 
-            if save:
-                plt.savefig(
-                    f'saved_nomograms/prepocess_GPR_{brain_region_hemisphere.get_name()}_{sex.get_name()}.png',
-                    dpi=600)
-
-            plt.show()
-
-        model.optimize(messages=True)
+        model.optimize_parallel(messages=True)
         model.optimize_restarts(num_restarts=10)
 
         display(model)
 
-        if plot:
-            model.plot()
-            plt.xlabel('Age')
-            plt.ylabel(f'{brain_region_hemisphere}')
-            plt.title(f'{brain_region_hemisphere} vs Age Post Gaussian Process Optimization for {sex} Participants')
+        plot_gpr_model(model,y_label=brain_region_hemisphere,
+                       title=f'{brain_region_hemisphere} vs Age Post Gaussian Process Optimization for {sex} Participants',
+                       filename=f'post_pocess_GPR_{brain_region_hemisphere.get_name()}_{sex.get_name()}',
+                       save=save, plot=plot)
 
-            if save:
-                plt.savefig(
-                    f'saved_nomograms/post_pocess_GPR_{brain_region_hemisphere.get_name()}_{sex.get_name()}.png',
-                    dpi=600)
-
-            plt.show()
-
-        mean, variance = model.predict(np.linspace(min_age, max_age, number_of_bins)[:, np.newaxis])
+        # maybe make the setting of the params a function
+        mean, variance = model.predict(median_ages_sequence)
         mean = mean.flatten().tolist()
-
         std = [np.sqrt(v) for v in variance.flatten()]
+
+        hemisphere_name = brain_region_hemisphere.get_name()
         gpr_params[get_brain_region_average_cn(hemisphere_name)] = mean
         gpr_params[get_brain_region_variance_cn(hemisphere_name)] = std
 
