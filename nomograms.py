@@ -35,10 +35,11 @@ def plot_nomogram(df, bins, brain_region, sex, x=median_ages, x_lim=None, y_lim=
         if save:
             plt.savefig(f'saved_nomograms/{analysis_type.name}_{brain_region_hemisphere.get_name()}_nomogram_{sex.get_name()}.png', dpi=600)
 
-        plt.show()
+        # plt.show()
+        plt.close()
 
 
-def overlay_nomograms(bins_1, brain_region_hemisphere_1, sex_1, bins_2, brain_region_hemisphere_2, sex_2, x=median_ages, x_lim=None, y_lim=None, save=True):
+def overlay_same_type_nomograms(bins_1, brain_region_hemisphere_1, sex_1, bins_2, brain_region_hemisphere_2, sex_2, x=median_ages, x_lim=None, y_lim=None, save=True):
     median_age_column = bins_1[x]
     x_label = ' '.join(x.split('_')).capitalize()
 
@@ -75,4 +76,33 @@ def overlay_nomograms(bins_1, brain_region_hemisphere_1, sex_1, bins_2, brain_re
         fig.savefig(f'saved_nomograms/{get_underscored_string(nomogram_description)}_nomogram_overlays.png', dpi=600)
 
     plt.show()
+
+
+def overlay_nomograms(bins_1, type_1, sex, bins_2, type_2, brain_region, x=median_ages, x_lim=None, y_lim=None, save=True):
+    x_label = ' '.join(x.split('_')).capitalize()
+    if not x_lim:
+        x_lim = [min_age, max_age]
+
+    for brain_region_hemisphere in brain_region:
+        for percentile in percentiles:
+            if type_1 == AnalysisType.SWA:
+                handle_2, = plt.plot(bins_2[x], bins_2[get_brain_region_percentile_cn(percentile, brain_region_hemisphere.get_name())], label=f'{type_2}', color="#7D838C")
+                handle_1, = plt.plot(bins_1[x], bins_1[get_brain_region_smoothed_percentile_cn(percentile, brain_region_hemisphere.get_name())], label=f'{type_1}', color="#D00B14")
+            else:
+                handle_1, = plt.plot(bins_2[x], bins_2[get_brain_region_percentile_cn(percentile, brain_region_hemisphere.get_name())], label=f'{type_2}', color="#7D838C")
+                handle_2, = plt.plot(bins_1[x], bins_1[get_brain_region_smoothed_percentile_cn(percentile, brain_region_hemisphere.get_name())], label=f'{type_1}', color="#D00B14")
+
+        plt.title(f'Overlay of nomograms of SWA and GPR for {brain_region_hemisphere} for {sex} participants')
+        plt.xlabel(x_label)
+        plt.ylabel(f'{brain_region_hemisphere}')
+        plt.xlim(x_lim)
+        if y_lim:
+            plt.ylim(y_lim)
+        plt.legend(handles=[handle_1, handle_2])
+        fig = plt.gcf()
+        fig.set_size_inches((8.5, 11), forward=False)
+        if save:
+            fig.savefig(f'saved_nomograms/{brain_region_hemisphere.get_name()}_{sex}_nomogram_SWA_GPR_overlays.png', dpi=600)
+
+        plt.show()
 

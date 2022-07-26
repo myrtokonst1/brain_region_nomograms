@@ -1,8 +1,11 @@
 import enum
 
 import GPy as GPy
+import tensorflow_probability as tfp
+
 import matplotlib.pyplot as plt
 from IPython.display import display
+from gpflow.utilities import to_default_float
 from scipy.stats import norm
 
 import numpy as np
@@ -14,11 +17,11 @@ from constants.processed_table_column_names import median_ages, get_brain_region
     get_brain_region_percentile_cn, get_brain_region_variance_cn
 from constants.ukb_table_column_names import latest_age_cn
 
-number_of_datapoints = 1000
-min_age = 0
-max_age = 100
+number_of_datapoints = 500
+min_age = 35
+max_age = 95
 number_of_bins = (max_age - min_age)*4  # 4 points per year
-median_ages_sequence = np.linspace(min_age, max_age, number_of_bins)[:, np.newaxis]
+median_ages_sequence = np.linspace(min_age, max_age, number_of_bins)
 
 
 def initialize_params_dictionary(brain_region):
@@ -37,7 +40,7 @@ def initialize_params_dictionary(brain_region):
     return gpr_params
 
 
-def plot_gpr_model(model, y_label, title, filename, save=True, plot=True):
+def plot_gpr_model(model, y_label, title, filename, save=True, plot=False):
     model.plot()
     plt.xlabel('Age')
     plt.ylabel(y_label)
@@ -77,7 +80,7 @@ def perform_gaussian_process_regression(df: pd.DataFrame, brain_region: enum, se
                        filename=f'prepocess_GPR_{brain_region_hemisphere.get_name()}_{sex.get_name()}',
                        save=save, plot=plot)
 
-        model.optimize_parallel(messages=True)
+        model.optimize(messages=True)
         model.optimize_restarts(num_restarts=10)
 
         display(model)
@@ -88,7 +91,7 @@ def perform_gaussian_process_regression(df: pd.DataFrame, brain_region: enum, se
                        save=save, plot=plot)
 
         # maybe make the setting of the params a function
-        mean, variance = model.predict(median_ages_sequence)
+        mean, variance = model.predict(median_ages_sequence[:, np.newaxis])
         mean = mean.flatten().tolist()
         std = [np.sqrt(v) for v in variance.flatten()]
 
