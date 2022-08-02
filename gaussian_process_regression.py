@@ -1,25 +1,27 @@
 import enum
 import pathlib
+import sys
+from collections import Counter
 
 import gpflow
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from gpflow.ci_utils import ci_niter
-from gpflow.monitor import Monitor, MonitorTaskGroup, ModelToTensorBoard
+from gpflow.monitor import Monitor, MonitorTaskGroup, ModelToTensorBoard, ImageToTensorBoard
 from gpflow.utilities import print_summary, to_default_float
 from scipy.stats import norm
 
 import numpy as np
+np.set_printoptions(threshold=sys.maxsize)
+
 import pandas as pd
 from scipy.spatial.distance import pdist
-from tensorflow.python.client import device_lib
 
 from constants.nomogram_constants import percentiles, quantiles
 from constants.processed_table_column_names import median_ages, get_brain_region_average_cn, \
     get_brain_region_percentile_cn, get_brain_region_variance_cn
 from constants.ukb_table_column_names import latest_age_cn
 from enums.brain_regions.hippocampal_volume import HippocampalVolume
-from enums.sex import Sex
 
 number_of_datapoints = 6000
 min_age = 40
@@ -74,7 +76,8 @@ def perform_gaussian_process_regression(df: pd.DataFrame, brain_region: enum, se
     filename = f'GPR_{brain_region.get_name()}_{sex.get_name()}'
 
     gpr_params = initialize_params_dictionary(brain_region)
-    sampled_df = df.sample(n=number_of_datapoints)
+    sampled_df = df[:number_of_datapoints]
+    # sampled_df = df.sample(n=number_of_datapoints)
     # for brain_region_hemisphere in brain_region:
     # get X and y
     X = sampled_df[latest_age_cn].to_numpy()
@@ -89,8 +92,22 @@ def perform_gaussian_process_regression(df: pd.DataFrame, brain_region: enum, se
 
     model = gpflow.models.GPR(data=(X, y), kernel=kernel)
     print_summary(model)
+    log_dir = f'logs/{filename}'
 
-    monitor = Monitor(MonitorTaskGroup(ModelToTensorBoard(f'logs/{filename}', model), period=1))
+    # awful but has great results in TensorBoard
+    def plot_prediction(fig, ax):
+        Xnew = np.linspace(X.min() - 0.5, X.max() + 0.5, 100).reshape(-1, 1)
+        Ypred = model.predict_f_samples(Xnew, full_cov=True, num_samples=20)
+        ax.plot(X, y, "x", mew=2, color='#E1E4EA')
+        ax.plot(Xnew.flatten(), np.squeeze(Ypred).T, "C1", alpha=0.2)
+
+    image_task = ImageToTensorBoard(log_dir, plot_prediction, "image_samples")
+    model_task = ModelToTensorBoard(log_dir, model)
+
+    slow_tasks = MonitorTaskGroup(image_task, period=5)
+    fast_tasks = MonitorTaskGroup(model_task, period=1)
+    monitor = Monitor(fast_tasks, slow_tasks)
+
     for i in range(ci_niter(random_restarts)):
         print(f'iteration {i}')
         opt = gpflow.optimizers.Scipy()
