@@ -1,41 +1,48 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 from constants.processed_table_column_names import median_ages, \
     get_brain_region_smoothed_percentile_cn, get_brain_region_percentile_cn
-from constants.nomogram_constants import percentiles
+from constants.nomogram_constants import percentiles, less_percentiles
 from constants.preprocessing_constants import min_age, max_age
 from constants.ukb_table_column_names import latest_age_cn
 from enums.analysis_type import AnalysisType
 from utils import get_underscored_string
 
 
-def plot_nomogram(df, bins, brain_region, sex, x=median_ages, x_lim=None, y_lim=None, save=bool, analysis_type=AnalysisType.SWA):
-    median_age_column = bins[x]
+def plot_nomogram(bins_1, brain_region_1, sex, x=median_ages, bin_2=None, p='',  x_lim=None, y_lim=None, save=bool, analysis_type=AnalysisType.SWA):
+    median_age_column = bins_1[x]
     x_label = ' '.join(x.split('_')).capitalize()
 
     if not x_lim:
         x_lim = [min_age, max_age]
 
-    plt.plot(df[latest_age_cn], df[brain_region.get_column_name()], "x", mew=2, color='#E1E4EA')
-    for percentile in percentiles:
-        percentile_column_name = get_brain_region_smoothed_percentile_cn(percentile, brain_region.get_name()) if analysis_type == AnalysisType.SWA else get_brain_region_percentile_cn(percentile, brain_region.get_name())
-        plt.plot(median_age_column, bins[percentile_column_name], label=f'{percentile} Percentile', color='r')
+    for percentile in less_percentiles:
+        percentile_column_name = get_brain_region_smoothed_percentile_cn(percentile, brain_region_1.get_name()) if analysis_type == AnalysisType.SWA else get_brain_region_percentile_cn(percentile, brain_region_1.get_name())
 
-    plt.title(f'{str(brain_region)} vs {x_label} for {str(sex)} participants')
+        handle_1, = plt.plot(median_age_column, bins_1[percentile_column_name], label=f'Whole dataset Percentile', color='r')
+
+        if bin_2 is not None:
+            print(bin_2[percentile_column_name])
+            handle_2, = plt.plot(median_age_column, bin_2[percentile_column_name], label=f'{p} Percentile', color='b')
+
+        plt.fill_between(median_age_column,  bin_2[percentile_column_name], bins_1[percentile_column_name], color='#808080', alpha=0.2)
+
+    plt.title(f'{str(brain_region_1)} vs {x_label} for {str(sex)} participants {p} PGS')
     plt.xlabel(x_label)
-    plt.ylabel(str(brain_region))
+    plt.ylabel(str(brain_region_1))
     plt.xlim(x_lim)
 
     if y_lim:
         plt.ylim(y_lim)
 
     plt.grid(linestyle='--')
+    plt.legend(handles=[handle_1, handle_2])
 
     if save:
-        plt.savefig(f'saved_nomograms/{analysis_type.name}_{brain_region.get_name()}_nomogram_{sex.get_name()}.png', dpi=600)
+        plt.savefig(f'saved_nomograms/{analysis_type.name}_{brain_region_1.get_name()}_nomogram_{sex.get_name()}_normal_vs_{p}.png', dpi=600)
 
-    # plt.show()
-    plt.close()
+    plt.show()
 
 
 def overlay_same_type_nomograms(bins_1, brain_region_hemisphere_1, sex_1, bins_2, brain_region_hemisphere_2, sex_2, x=median_ages, x_lim=None, y_lim=None, save=True):
@@ -100,7 +107,7 @@ def overlay_nomograms(bins_1, type_1, sex, bins_2, type_2, brain_region, x=media
     fig = plt.gcf()
     fig.set_size_inches((8.5, 11), forward=False)
     if save:
-        fig.savefig(f'saved_nomograms/{brain_region.get_name()}_{sex}_nomogram_SWA_GPR_overlays.png', dpi=600)
+        fig.savefig(f'saved_nomograms/{brain_region.get_name()}_{sex}_nomogram_SWA_GPR_overlays_TEST.png', dpi=600)
 
     plt.show()
 

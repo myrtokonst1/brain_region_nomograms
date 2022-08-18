@@ -6,8 +6,8 @@ from enums.brain_regions.brain_region_volume import BrainRegionVolume
 
 
 class AmygdalaVolume(BrainRegionVolume):
-    LEFT = 1
-    RIGHT = 2
+    RIGHT = 1
+    LEFT = 2
 
     def __init__(self, brain_region):
         super().__init__('amygdala volume')

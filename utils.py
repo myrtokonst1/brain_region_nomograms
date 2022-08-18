@@ -7,8 +7,8 @@ from matplotlib import pyplot as plt
 from constants.ukb_table_column_names import cranial_vol_cn, latest_age_cn
 
 
-def convert_dataset_to_pd(path):
-    data = pd.read_csv(path)
+def convert_dataset_to_pd(path, delim_whitespace=False):
+    data = pd.read_csv(path, delim_whitespace=delim_whitespace)
 
     return data
 
@@ -64,5 +64,18 @@ def get_percentile_string(percentile: float):
 
 def get_underscored_string(phrase: string):
     return '_'.join(phrase.split(' '))
+
+
+def take_nth_percentile_of_df(df, percentile, sorting_column_name):
+    df = df.sort_values(by=[sorting_column_name])
+    dataframe_rows = df.shape[0]
+
+    number_of_rows_in_percentile = round(dataframe_rows * percentile)
+
+    bottom_percentile = df.head(number_of_rows_in_percentile)
+    top_percentile = df.tail(number_of_rows_in_percentile)
+
+    return bottom_percentile, top_percentile
+
 
 

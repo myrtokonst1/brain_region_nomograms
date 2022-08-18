@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from sklearn.linear_model import LinearRegression
 
 from constants.data_paths import main_ukb_data_path, ukb_brain_data_path, ukb_preprocessed_data_path, \
-    ukb_participant_exclusion_data_path
+    ukb_participant_exclusion_data_path, pgs_data_path
 from constants.preprocessing_constants import white_british_code, min_age, max_age, standard_brain_icv
 from constants.processed_table_column_names import scan_timestamp, icv_estimate
 from constants.ukb_table_column_names import intercranial_ratio_cn, scan_date_cn, \
@@ -20,6 +20,8 @@ def generate_and_merge_dataframes():
     main_ukb_df = convert_dataset_to_pd(main_ukb_data_path)
     brain_ukb_df = convert_dataset_to_pd(ukb_brain_data_path)
     preprocessed_ukb_df = convert_dataset_to_pd(ukb_preprocessed_data_path)
+    PGS = convert_dataset_to_pd(pgs_data_path, delim_whitespace=True)
+
     participant_exclusion_ukb_df = convert_dataset_to_pd(ukb_participant_exclusion_data_path)
 
     # get columns of participant_exclusion_ukb_df that we want to include in the merged dataframe
@@ -27,10 +29,14 @@ def generate_and_merge_dataframes():
 
     # merge the three datasets
     bb_df = pd.merge(pd.merge(pd.merge(main_ukb_df, brain_ukb_df[[participant_id, l_amygdala_vol_cn, r_amygdala_vol_cn]], on=participant_id, how='outer'),
-                     preprocessed_ukb_df[[participant_id, latest_age_cn]], on=participant_id, how='outer'),
+                     preprocessed_ukb_df[[participant_id, latest_age_cn,  "Genetic.PC.1","Genetic.PC.2","Genetic.PC.3",
+               "Genetic.PC.4","Genetic.PC.5","Genetic.PC.6","Genetic.PC.7",
+               "Genetic.PC.8","Genetic.PC.9","Genetic.PC.10"]], on=participant_id, how='outer'),
                      participant_exclusion_ukb_df[desired_participant_exclusion_columns], on=participant_id, how='outer')
 
-    return bb_df
+    final_df = pd.merge(PGS, bb_df, left_on='IID', right_on=participant_id)
+
+    return final_df
 
 
 def exclude_values_from_column(df, column_name, column_values_to_exclude):
