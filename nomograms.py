@@ -109,5 +109,5 @@ def overlay_nomograms(bins_1, type_1, sex, bins_2, type_2, brain_region, x=media
     if save:
         fig.savefig(f'saved_nomograms/{brain_region.get_name()}_{sex}_nomogram_SWA_GPR_overlays_TEST.png', dpi=600)
 
-    plt.show()
+    plt.close()
 

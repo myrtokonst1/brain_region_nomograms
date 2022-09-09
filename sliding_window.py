@@ -48,6 +48,7 @@ def perform_sliding_window_analysis(df: pd.DataFrame, brain_region: enum):
     i = 0
     j = 0
     step = shifts[j]
+
     while i < number_of_rows - number_of_participants_in_bins[-1]:
         bin = df[i:i+number_of_participants_in_bins[j]]
 

@@ -1,6 +1,7 @@
 import enum
 import string
 
+import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
@@ -78,4 +79,21 @@ def take_nth_percentile_of_df(df, percentile, sorting_column_name):
     return bottom_percentile, top_percentile
 
 
+def compute_difference_between_two_functions(data_1, data_2, y_1_label=None, y_2_label=None, x_label=latest_age_cn, x_values=None, y_average=1):
+    difference = np.zeros(data_1.shape[0])
+    if x_values is None:
+        if data_1[x_label].equals(data_2[x_label]):
+            print(f'female average vol {data_1[y_1_label].mean()}')
+            print(f'male average vol {data_2[y_2_label].mean()}')
+            difference = (data_1[y_1_label] - data_2[y_2_label]).abs()
+        else:
+            # extrapolate data_2's function on data_1's data
+            print('extrapolate data_2s function on data_1s data')
+    else:
+        # extrapolate both data_2's function and data_1's function on x_data
+        print('extrapolate both data_1s function and data_1s function on x_data')
 
+    average_difference = difference.mean()
+    relative_average_difference = average_difference/y_average
+
+    return average_difference, relative_average_difference*100
